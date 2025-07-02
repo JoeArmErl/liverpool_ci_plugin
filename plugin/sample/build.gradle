@@ -1,0 +1,11 @@
+plugins {
+    // we don’t need a version, composite build wires it up
+    id 'com.liverpool.ci'
+}
+
+// probe it
+task printConfig {
+    doLast {
+        println "→ excludedPaths = " + project.extensions.archUnit.excludedPaths
+    }
+}

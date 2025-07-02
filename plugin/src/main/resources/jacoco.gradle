@@ -1,0 +1,59 @@
+// src/main/resources/jacoco.gradle
+
+// 1) Apply the official Jacoco plugin
+apply plugin: 'jacoco'
+
+// 2) Grab your CodeCoverageExtension (registered by LiverpoolCiGradlePlugin)
+def cfg = project.extensions.findByType(com.liverpool.ci.CodeCoverageExtension)
+
+// 3) Configure the test task to generate execution data
+test {
+    finalizedBy jacocoTestReport          // run report after tests
+    jacoco {
+        // e.g. ignore Quarkus‐loaded classes
+        excludeClassLoaders = ['*QuarkusClassLoader']
+    }
+}
+
+// 4) Set up the XML/HTML report and filter out excluded packages
+jacocoTestReport {
+    executionData test
+    reports {
+        xml.required  = true
+        html.required = true
+    }
+    afterEvaluate {
+        classDirectories = files(
+            classDirectories.files.collect { dir ->
+                fileTree(dir: dir, exclude: cfg.coverageExclusions)
+            }
+        )
+    }
+    dependsOn test
+    finalizedBy jacocoTestCoverageVerification
+}
+
+// 5) Enforce minimum coverage rules
+jacocoTestCoverageVerification {
+    // Print a pointer to the HTML report
+    logger.quiet("Coverage report: file://${project.buildDir}/reports/jacoco/test/html/index.html")
+
+    afterEvaluate {
+        classDirectories = files(
+            classDirectories.files.collect { dir ->
+                fileTree(dir: dir, exclude: cfg.coverageExclusions)
+            }
+        )
+    }
+
+    violationRules {
+        rule {
+            limit { counter = 'INSTRUCTION'; minimum = cfg.jacocoInstructionMin     }
+            limit { counter = 'BRANCH';      minimum = cfg.jacocoBranchMin          }
+            limit { counter = 'LINE';        minimum = cfg.jacocoLineMin            }
+            limit { counter = 'COMPLEXITY';  minimum = cfg.jacocoComplexityMin      }
+            limit { counter = 'METHOD';      minimum = cfg.jacocoMethodMin          }
+            limit { counter = 'CLASS';       minimum = cfg.jacocoClassMin           }
+        }
+    }
+}

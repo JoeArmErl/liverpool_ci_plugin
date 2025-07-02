@@ -1,0 +1,79 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'maven-publish'        // if you plan to publish
+}
+
+group = 'com.liverpool'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = uri("https://plugins.gradle.org/m2/") }
+}
+
+// 1) Define the functionalTest source set before we reference its configurations
+sourceSets {
+    functionalTest {
+        groovy.srcDir file('src/functionalTest/groovy')
+        resources.srcDir file('src/functionalTest/resources')
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+// 2) Make its configurations extend from the regular test ones
+configurations {
+    functionalTestImplementation {
+        extendsFrom testImplementation
+    }
+    functionalTestRuntimeOnly {
+        extendsFrom testRuntimeOnly
+    }
+}
+
+dependencies {
+    implementation localGroovy()
+
+    // Unit tests
+    testImplementation gradleTestKit()
+    testImplementation 'org.spockframework:spock-core:2.2-groovy-3.0'
+
+    // Functional TestKit tests – now the configuration exists!
+    functionalTestImplementation gradleTestKit()
+    functionalTestImplementation 'org.spockframework:spock-core:2.2-groovy-3.0'
+}
+
+// 3) Create the functionalTest task
+task functionalTest(type: Test) {
+    description = 'Runs functional tests (TestKit + Spock)'
+    group       = 'verification'
+
+    testClassesDirs = sourceSets.functionalTest.output.classesDirs
+    classpath       = sourceSets.functionalTest.runtimeClasspath
+
+    mustRunAfter test
+}
+
+// 4) Hook it into check
+check.dependsOn functionalTest
+
+gradlePlugin {
+    plugins {
+        liverpoolCi {
+            id = 'com.liverpool.ci'
+            implementationClass = 'com.liverpool.ci.LiverpoolCiGradlePlugin'
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenPlugin(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        // your internal Maven repo, etc.
+    }
+}

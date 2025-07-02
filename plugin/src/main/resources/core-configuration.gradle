@@ -1,0 +1,32 @@
+// core-configuration.gradle
+
+// Configure the JAR manifest
+jar {
+  manifest {
+    attributes(
+      "Implementation-Title"      : project.name,
+      "Implementation-Version"    : project.version,
+      "Implementation-Vendor-Id"   : project.group,
+      "Implementation-Vendor"      : project.group
+    )
+  }
+}
+
+// Force UTF-8 encoding everywhere
+compileJava    { options.encoding = 'UTF-8' }
+compileTestJava{ options.encoding = 'UTF-8' }
+javadoc        { options.encoding = 'UTF-8'; failOnError = false }
+
+// CycloneDX BOM plugin configuration (we assume your plugin apply opens the .bom DSL)
+cyclonedxBom {
+  includeConfigs = ["runtimeClasspath"]
+}
+
+// SonarQube analysis (we assume the Sonar plugin is applied ahead of time)
+sonarqube {
+  properties {
+    property "sonar.projectKey",       "${System.env.CI_PROJECT_ROOT_NAMESPACE}_${System.env.CI_PROJECT_NAME}"
+    property "sonar.organization",     System.env.CI_PROJECT_ROOT_NAMESPACE
+    property "sonar.qualitygate.wait", "true"
+  }
+}

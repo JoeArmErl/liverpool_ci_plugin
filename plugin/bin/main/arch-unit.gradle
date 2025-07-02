@@ -1,0 +1,36 @@
+// bring in our helper methods
+import static com.liverpool.ci.ArchUnitHelpers.*
+
+// grab the extension instance
+def cfg = project.extensions.archUnit
+
+// configure the DSL properties
+cfg.configurableRules = [
+        configurableRule(
+                "com.tngtech.archunit.library.GeneralCodingRules",
+                applyOn(cfg.packagePath, "main")
+        ),
+        configurableRule(
+                "com.tngtech.archunit.library.DependencyRules",
+                applyOn(cfg.packagePath, "main")
+        ),
+        configurableRule(
+                "com.tngtech.archunit.library.ProxyRules",
+                applyOn(cfg.packagePath, "main")
+        )
+]
+
+cfg.excludedPaths = [
+        "controller.model",
+        "application.data"
+]
+
+cfg.preConfiguredRules = [
+        "com.societegenerale.commons.plugin.rules.NoInjectedFieldTest",
+        "com.societegenerale.commons.plugin.rules.NoAutowiredFieldTest",
+        "com.societegenerale.commons.plugin.rules.NoTestIgnoreWithoutCommentRuleTest",
+        "com.societegenerale.commons.plugin.rules.NoPrefixForInterfacesRuleTest",
+        "com.societegenerale.commons.plugin.rules.NoJodaTimeRuleTest",
+        "com.societegenerale.commons.plugin.rules.NoJavaUtilDateRuleTest",
+        "com.societegenerale.commons.plugin.rules.NoPublicFieldRuleTest"
+]
