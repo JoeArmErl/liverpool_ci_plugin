@@ -9,16 +9,22 @@ class LiverpoolCiGradlePlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        project.pluginManager.apply('java')
-        project.pluginManager.apply('jacoco')
-        project.pluginManager.apply('org.cyclonedx.bom')
-        project.pluginManager.apply('org.sonarqube')
-        project.pluginManager.apply('checkstyle')
+        applyCorePlugins(project)
+        registerExtensions(project)
+        applyEmbeddedScripts(project)
+    }
 
-        project.extensions.create('archUnit', ArchUnitExtension)
+    private void applyCorePlugins(Project project) {
+        ['java', 'jacoco', 'org.cyclonedx.bom', 'org.sonarqube', 'checkstyle']
+            .each { project.pluginManager.apply(it) }
+    }
+
+    private void registerExtensions(Project project) {
+        project.extensions.create('archUnit',    ArchUnitExtension)
         project.extensions.create('codeCoverage', CodeCoverageExtension)
+    }
 
-        // 3) List your embedded scripts
+    private void applyEmbeddedScripts(Project project) {
         def scripts = [
             'core-configuration.gradle',
             'arch-unit.gradle',
@@ -27,38 +33,41 @@ class LiverpoolCiGradlePlugin implements Plugin<Project> {
             'checkstyle-conventions.gradle'
         ]
 
-        // 4) Load, split imports & body, then delegate the body to project
         scripts.each { name ->
             URL url = getClass().classLoader.getResource(name)
             if (!url) {
-                project.logger.warn("⚠️ Could not find $name in plugin resources")
+                project.logger.warn("⚠️ Could not find $name")
                 return
             }
-            project.logger.lifecycle("▶️ Applying embedded script: $name")
-            String text = url.text
-
-            // Split top‐level imports vs. the rest
-            List<String> imports = []
-            List<String> body    = []
-            text.readLines().each { line ->
-                if (line.trim().startsWith('import ')) {
-                    imports << line
-                } else {
-                    body << line
-                }
-            }
-
-            // Reassemble: imports remain at top, body runs inside project.with { … }
-            StringBuilder sb = new StringBuilder()
-            imports.each { sb.append(it).append('\n') }
-            sb.append('project.with {\n')
-            body.each   { sb.append(it).append('\n') }
-            sb.append('}\n')
-
-            // Evaluate with GroovyShell, binding 'project' in scope
-            Binding binding = new Binding([ project: project ])
-            GroovyShell shell = new GroovyShell(getClass().classLoader, binding)
-            shell.evaluate(sb.toString())
+            project.logger.lifecycle("▶️ Applying $name")
+            shellEvaluateScript(project, url.text)
         }
+    }
+
+    private void shellEvaluateScript(Project project, String scriptText) {
+        def (imports, body) = splitImportsAndBody(scriptText)
+        String wrapped = buildWrappedScript(imports, body)
+        def binding = new Binding([ project: project ])
+        def shell   = new GroovyShell(getClass().classLoader, binding)
+        shell.evaluate(wrapped)
+    }
+
+    private List splitImportsAndBody(String text) {
+        def imports = []
+        def body    = []
+        text.readLines().each { line ->
+            if (line.trim().startsWith('import ')) imports << line
+            else                                     body    << line
+        }
+        [imports, body]
+    }
+
+    private String buildWrappedScript(List<String> imports, List<String> body) {
+        def sb = new StringBuilder()
+        imports.each { sb.append(it).append('\n') }
+        sb.append('project.with {\n')
+        body.each   { sb.append(it).append('\n') }
+        sb.append('}\n')
+        sb.toString()
     }
 }
