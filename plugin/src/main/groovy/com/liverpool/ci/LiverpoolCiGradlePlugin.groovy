@@ -9,13 +9,12 @@ class LiverpoolCiGradlePlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        // 1) Apply core plugins so their DSL methods exist
         project.pluginManager.apply('java')
         project.pluginManager.apply('jacoco')
         project.pluginManager.apply('org.cyclonedx.bom')
         project.pluginManager.apply('org.sonarqube')
+        project.pluginManager.apply('checkstyle')
 
-        // 2) Register extensions
         project.extensions.create('archUnit', ArchUnitExtension)
         project.extensions.create('codeCoverage', CodeCoverageExtension)
 
@@ -23,7 +22,9 @@ class LiverpoolCiGradlePlugin implements Plugin<Project> {
         def scripts = [
             'core-configuration.gradle',
             'arch-unit.gradle',
-            'jacoco.gradle'
+            'jacoco.gradle',
+            'test-conventions.gradle',
+            'checkstyle-conventions.gradle'
         ]
 
         // 4) Load, split imports & body, then delegate the body to project

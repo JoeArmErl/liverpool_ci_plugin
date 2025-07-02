@@ -1,0 +1,21 @@
+// test-conventions.gradle
+
+test {
+    useJUnitPlatform()
+    systemProperty "file.encoding", "utf-8"
+
+    testLogging {
+        exceptionFormat = 'full'
+
+        afterSuite { desc, result ->
+            // only print summary at the very end
+            if (!desc.parent) {
+                println "Results: ${result.resultType} " +
+                        "(${result.testCount} tests, " +
+                        "${result.successfulTestCount} successes, " +
+                        "${result.failedTestCount} failures, " +
+                        "${result.skippedTestCount} skipped)"
+            }
+        }
+    }
+}

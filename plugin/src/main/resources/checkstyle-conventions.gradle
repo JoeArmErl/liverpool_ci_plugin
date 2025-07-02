@@ -1,0 +1,9 @@
+// checkstyle-conventions.gradle
+
+checkstyle {
+    sourceSets = [ project.sourceSets.main ]
+    config = resources.text.fromFile('config/checkstyle-rules.xml')
+    toolVersion    = '10.12.4'
+    ignoreFailures = false
+    maxWarnings    = 0
+}
