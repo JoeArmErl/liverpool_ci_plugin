@@ -6,32 +6,58 @@ import groovy.lang.Binding
 import groovy.lang.GroovyShell
 
 class LiverpoolCiGradlePlugin implements Plugin<Project> {
+
     @Override
     void apply(Project project) {
-        project.pluginManager.apply('java')    // for jar{}, compileJava{}, javadoc{}
+        // 1) Apply core plugins so their DSL methods exist
+        project.pluginManager.apply('java')
         project.pluginManager.apply('jacoco')
+        project.pluginManager.apply('org.cyclonedx.bom')
+        project.pluginManager.apply('org.sonarqube')
+
+        // 2) Register extensions
         project.extensions.create('archUnit', ArchUnitExtension)
         project.extensions.create('codeCoverage', CodeCoverageExtension)
 
-        // 2) list all the embedded Gradle scripts you want to apply
+        // 3) List your embedded scripts
         def scripts = [
+            'core-configuration.gradle',
             'arch-unit.gradle',
             'jacoco.gradle'
-            // ← add more filenames here as you add new .gradle files
         ]
 
-        // 3) for each script, GroovyShell-evaluate it so it sees your classes
+        // 4) Load, split imports & body, then delegate the body to project
         scripts.each { name ->
             URL url = getClass().classLoader.getResource(name)
-            if (url) {
-                project.logger.lifecycle("▶️ Applying embedded script: $name")
-                String text    = url.text
-                Binding binding = new Binding([ project: project ])
-                GroovyShell shell = new GroovyShell(getClass().classLoader, binding)
-                shell.evaluate(text)
-            } else {
-                project.logger.warn("⚠️  Could not find $name in plugin resources")
+            if (!url) {
+                project.logger.warn("⚠️ Could not find $name in plugin resources")
+                return
             }
+            project.logger.lifecycle("▶️ Applying embedded script: $name")
+            String text = url.text
+
+            // Split top‐level imports vs. the rest
+            List<String> imports = []
+            List<String> body    = []
+            text.readLines().each { line ->
+                if (line.trim().startsWith('import ')) {
+                    imports << line
+                } else {
+                    body << line
+                }
+            }
+
+            // Reassemble: imports remain at top, body runs inside project.with { … }
+            StringBuilder sb = new StringBuilder()
+            imports.each { sb.append(it).append('\n') }
+            sb.append('project.with {\n')
+            body.each   { sb.append(it).append('\n') }
+            sb.append('}\n')
+
+            // Evaluate with GroovyShell, binding 'project' in scope
+            Binding binding = new Binding([ project: project ])
+            GroovyShell shell = new GroovyShell(getClass().classLoader, binding)
+            shell.evaluate(sb.toString())
         }
     }
 }

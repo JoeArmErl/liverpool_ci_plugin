@@ -26,4 +26,33 @@ class LiverpoolCiGradlePluginTest extends Specification {
         covExt.jacocoMethodMin      == 0.85
         covExt.jacocoClassMin       == 0.80
     }
+
+    def "plugin configures core build settings and applies quality plugins"() {
+        given:
+        def project = ProjectBuilder.builder().build()
+
+        when:
+        project.pluginManager.apply('com.liverpool.ci')
+
+        then: "the 'jar' task manifest carries project coordinates"
+        def jarTask = project.tasks.getByName('jar')
+        jarTask.manifest.attributes['Implementation-Title']      == project.name
+        jarTask.manifest.attributes['Implementation-Version']    == project.version
+        jarTask.manifest.attributes['Implementation-Vendor-Id']  == project.group
+        jarTask.manifest.attributes['Implementation-Vendor']     == project.group
+
+        and: "compile & javadoc tasks use UTF-8"
+        project.tasks.compileJava.options.encoding    == 'UTF-8'
+        project.tasks.compileTestJava.options.encoding== 'UTF-8'
+        project.tasks.javadoc.options.encoding        == 'UTF-8'
+        !project.tasks.javadoc.failOnError
+
+        and: "CycloneDX and SonarQube plugins are applied and configured"
+        project.plugins.hasPlugin('org.cyclonedx.bom')
+        project.extensions.findByName('cyclonedxBom') != null
+
+        project.plugins.hasPlugin('org.sonarqube')
+        def sonarExt = project.extensions.findByName('sonarqube')
+        sonarExt.properties['sonar.qualitygate.wait'] == 'true'
+    }
 }

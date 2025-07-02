@@ -42,6 +42,9 @@ dependencies {
     // Functional TestKit tests – now the configuration exists!
     functionalTestImplementation gradleTestKit()
     functionalTestImplementation 'org.spockframework:spock-core:2.2-groovy-3.0'
+    // embed CycloneDX and SonarQube so they’re always on the classpath:
+    implementation("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:2.3.1")
+    implementation("org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.5.0.2730")
 }
 
 // 3) Create the functionalTest task
