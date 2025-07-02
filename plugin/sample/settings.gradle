@@ -1,1 +1,16 @@
-includeBuild('../')
+// plugin/sample/settings.gradle
+
+pluginManagement {
+    // Make the parent plugin project available to this build
+    includeBuild('../')
+
+    repositories {
+        // First, look in the composite build
+        gradlePluginPortal()
+        // Fallback for other plugins
+        mavenCentral()
+    }
+}
+
+// Now you can name your sample build
+rootProject.name = 'sample'

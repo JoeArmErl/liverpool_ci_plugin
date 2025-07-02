@@ -1,11 +1,28 @@
 plugins {
-    // we don’t need a version, composite build wires it up
-    id 'com.liverpool.ci'
+  // now Gradle will resolve com.liverpool.ci from the composite build
+  id 'com.liverpool.ci'
 }
 
 // probe it
 task printConfig {
-    doLast {
-        println "→ excludedPaths = " + project.extensions.archUnit.excludedPaths
-    }
+  doLast {
+    println "→ archUnit.excludedPaths = " + project.extensions.archUnit.excludedPaths
+  }
+}
+
+task printGeneral {
+  doLast {
+    def attrs = tasks.jar.manifest.attributes
+    println "→ jar.manifest.attributes = $attrs"
+    println "→ compileJava.encoding     = " + tasks.compileJava.options.encoding
+    println "→ compileTestJava.encoding = " + tasks.compileTestJava.options.encoding
+    println "→ javadoc.encoding         = " + tasks.javadoc.options.encoding
+    println "→ javadoc.failOnError      = " + tasks.javadoc.failOnError
+  }
+}
+
+task printJacocoConfig {
+  doLast {
+    println "→ jacoco report = file://${buildDir}/reports/jacoco/test/html/index.html"
+  }
 }
